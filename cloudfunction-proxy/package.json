@@ -1,0 +1,7 @@
+{
+  "name": "tts-proxy",
+  "version": "1.0.0",
+  "description": "CORS proxy for 火山 TTS / 音色克隆",
+  "main": "index.js",
+  "dependencies": {}
+}

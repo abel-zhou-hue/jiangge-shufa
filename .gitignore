@@ -1,0 +1,27 @@
+# 系统垃圾
+.DS_Store
+Thumbs.db
+*.log
+
+# 代理临时输出
+proxy-capture.log
+proxy-run.log
+
+# OneDrive 同步标记
+.~lock.*
+
+# Node(本地代理) 如果以后引入依赖
+node_modules/
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code 本地数据
+.claude/
+
+# 你自己导出的临时视频
+*.mp4
+*.webm
+exports/

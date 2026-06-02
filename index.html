@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>江哥书法工作台</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ============= 侧边导航 ============= -->
+    <aside class="sidebar">
+      <div class="logo">
+        <img src="assets/jiangge-avatar.png" alt="江哥" class="logo-avatar"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';" />
+        <span class="logo-fallback" style="display:none">书</span>
+        <span class="logo-sub">江哥书法工作台</span>
+      </div>
+      <nav>
+        <a class="nav-item active" data-page="home">🏠 工作台</a>
+        <a class="nav-item" data-page="new">✍️ 新建视频</a>
+        <a class="nav-item" data-page="history">📁 历史作品</a>
+        <a class="nav-item" data-page="templates">📋 模板中心</a>
+        <a class="nav-item" data-page="voice">🎤 配音库 / 音色克隆</a>
+        <a class="nav-item" data-page="exports">📤 导出记录</a>
+        <a class="nav-item" data-page="settings">⚙️ 设置</a>
+      </nav>
+      <div class="sidebar-footer">v0.1 · <span id="api-status">⚪ 未配置</span></div>
+    </aside>
+
+    <!-- ============= 主内容区 ============= -->
+    <main class="main">
+      <!-- 1. 首页 -->
+      <section class="page active" id="page-home">
+        <h1>工作台</h1>
+        <div class="action-bar">
+          <button class="btn-primary big" id="btn-create-new">+ 新建书法视频</button>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3>最近作品 <a class="more">查看更多</a></h3>
+            <div class="recent-list" id="recent-list">
+              <div class="empty">还没有作品,新建一个吧</div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>常用模板 <a class="more">查看更多</a></h3>
+            <div class="template-list">
+              <div class="template-item">纯教学版</div>
+              <div class="template-item">国风美学版</div>
+              <div class="template-item">爆款短视频版</div>
+            </div>
+          </div>
+        </div>
+        <div class="card stats-card">
+          <h3>今日数据</h3>
+          <div class="stats">
+            <div class="stat"><div class="stat-label">视频生成</div><div class="stat-num" id="stat-videos">0</div></div>
+            <div class="stat"><div class="stat-label">本月生成</div><div class="stat-num" id="stat-month">0</div></div>
+            <div class="stat"><div class="stat-label">API 消耗</div><div class="stat-num" id="stat-api">¥0.00</div></div>
+            <div class="stat"><div class="stat-label">已配置</div><div class="stat-num" id="stat-config">0/3</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. 新建视频 / 选字页 -->
+      <section class="page" id="page-new">
+        <h1>新建书法视频 — 选字</h1>
+
+        <div class="card">
+          <div class="row">
+            <div class="col">
+              <label>选字方式</label>
+              <div class="tabs">
+                <button class="tab active" data-tab="manual">手动输入 / 字库</button>
+                <button class="tab" data-tab="pdf">字帖 PDF 识字</button>
+              </div>
+
+              <!-- 手动输入 -->
+              <div class="tab-panel active" data-panel="manual">
+                <label>今日教学汉字</label>
+                <input type="text" id="input-char" maxlength="20" placeholder="输入一个或多个字,如:永,或:福寿和" class="big-input" />
+                <div class="char-bank">
+                  <span class="char-pill">永</span>
+                  <span class="char-pill">和</span>
+                  <span class="char-pill">山</span>
+                  <span class="char-pill">水</span>
+                  <span class="char-pill">福</span>
+                  <span class="char-pill">寿</span>
+                  <span class="char-pill">家</span>
+                  <span class="char-pill">国</span>
+                </div>
+              </div>
+
+              <!-- PDF 识字 -->
+              <div class="tab-panel" data-panel="pdf">
+                <label>我的字帖库 <span class="hint" style="font-weight:normal">— 上传过的字帖都在这,以后直接点封面就能用</span></label>
+                <div id="copybook-list" class="copybook-list">
+                  <div class="empty">还没有保存过字帖 — 上传一个开始</div>
+                </div>
+
+                <label style="margin-top:14px">上传新字帖 PDF</label>
+                <div class="upload-area" id="pdf-upload-area">
+                  <input type="file" id="pdf-file-input" accept="application/pdf" hidden />
+                  <div class="upload-hint">点击或拖拽上传字帖 PDF<br/><span class="hint" style="font-size:12px">上传后自动保存到字帖库,下次免再传</span></div>
+                </div>
+                <div id="pdf-preview" class="pdf-preview"></div>
+                <div class="pdf-hint">提示:加载后在图上框选要教的字</div>
+              </div>
+            </div>
+
+            <div class="col preview-col">
+              <label>预览</label>
+              <div class="char-preview" id="char-preview">永</div>
+              <div class="preview-meta">
+                <div>今日教学:<span id="meta-char">永</span></div>
+                <div>书体:<span id="meta-style">楷书</span></div>
+                <div>预计成片:<span id="meta-duration">60秒</span></div>
+              </div>
+
+              <!-- 已选字清单(多字) -->
+              <label style="margin-top:16px">📋 选字清单 <span class="hint" id="selected-count" style="font-weight:normal;font-size:12px"></span></label>
+              <div id="selected-chars" class="selected-chars">
+                <div class="empty">从字帖框选 / 上面输入 / 字库点选 来添加字</div>
+              </div>
+              <button class="btn-secondary" id="btn-clear-chars" style="font-size:12px;padding:4px 10px;margin-top:6px;">清空</button>
+
+              <!-- 米字格预览(自动生成) -->
+              <label style="margin-top:14px">米字格图 <span class="hint" style="font-weight:normal;font-size:12px">— 自动合成,可贴到视频画面</span></label>
+              <div class="mizige-preview">
+                <img id="mizige-img" alt="米字格预览" style="max-width:100%;display:none" />
+                <div class="empty" id="mizige-empty">添加字后这里自动出米字格</div>
+                <button class="btn-secondary" id="btn-download-mizige" style="font-size:12px;padding:4px 10px;margin-top:8px;display:none;">⬇ 保存这张图</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col">
+              <label>书体选择</label>
+              <div class="radio-group" data-name="style">
+                <button class="radio-btn active" data-value="楷书">楷书</button>
+                <button class="radio-btn" data-value="行书">行书</button>
+                <button class="radio-btn" data-value="草书">草书</button>
+                <button class="radio-btn" data-value="隶书">隶书</button>
+                <button class="radio-btn" data-value="篆书">篆书</button>
+              </div>
+
+              <label>视频时长</label>
+              <div class="radio-group" data-name="duration">
+                <button class="radio-btn" data-value="30">30秒</button>
+                <button class="radio-btn active" data-value="60">60秒</button>
+                <button class="radio-btn" data-value="90">90秒</button>
+                <button class="radio-btn" data-value="180">3分钟</button>
+              </div>
+
+              <label>讲解风格</label>
+              <div class="radio-group" data-name="tone">
+                <button class="radio-btn active" data-value="干货教学">干货教学</button>
+                <button class="radio-btn" data-value="温和老师">温和老师</button>
+                <button class="radio-btn" data-value="国风文化">国风文化</button>
+                <button class="radio-btn" data-value="短视频爆款">短视频爆款</button>
+              </div>
+
+              <label>教学对象</label>
+              <div class="radio-group" data-name="audience">
+                <button class="radio-btn active" data-value="零基础">零基础</button>
+                <button class="radio-btn" data-value="书法爱好者">书法爱好者</button>
+                <button class="radio-btn" data-value="小学生">小学生</button>
+                <button class="radio-btn" data-value="家长陪学">家长陪学</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-bar center">
+          <button class="btn-primary big" id="btn-generate-script">⚡ 生成爆款讲解稿</button>
+        </div>
+      </section>
+
+      <!-- 3. 讲解稿编辑 -->
+      <section class="page" id="page-script">
+        <h1>讲解稿编辑</h1>
+        <div class="grid-3">
+          <div class="card">
+            <h3>AI 生成讲解稿</h3>
+            <div class="script-blocks" id="script-blocks">
+              <div class="empty">点击「生成爆款讲解稿」开始</div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>逐句修改</h3>
+            <textarea id="script-edit" class="script-textarea" placeholder="生成后可在此编辑..."></textarea>
+            <div class="hint">编辑后点击「保存讲稿」让小黑板和配音同步更新</div>
+            <button class="btn-secondary" id="btn-save-script">保存讲稿</button>
+          </div>
+          <div class="card blackboard-card">
+            <h3>板书重点</h3>
+            <div class="blackboard" id="blackboard-preview">
+              <div class="empty light">板书内容将自动从讲稿提取</div>
+            </div>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button class="btn-secondary" id="btn-regenerate">重新生成</button>
+          <button class="btn-secondary" id="btn-save-template">保存为模板</button>
+          <button class="btn-primary" id="btn-go-tts">下一步:生成 AI 配音 →</button>
+        </div>
+      </section>
+
+      <!-- 4. AI 配音 -->
+      <section class="page" id="page-tts">
+        <h1>AI 配音</h1>
+        <div class="grid-3">
+          <div class="card">
+            <h3>讲解文本摘要</h3>
+            <div class="text-summary" id="tts-summary"></div>
+          </div>
+          <div class="card">
+            <h3>音频设置</h3>
+            <label>配音音色 <span class="hint" style="font-weight:normal;font-size:12px">— ★ 推荐用「我的克隆音色」,2.0 模型最自然;官方三个是 1.0 模型有轻微机械感</span></label>
+            <div class="radio-group" data-name="voice">
+              <button class="radio-btn" data-value="zh_female_wenrounvsheng_mars_bigtts">温和女声 (1.0)</button>
+              <button class="radio-btn" data-value="zh_male_chenwen_mars_bigtts">沉稳男声 (1.0)</button>
+              <button class="radio-btn" data-value="zh_male_yangguangqingnian_mars_bigtts">国风老师 (1.0)</button>
+              <button class="radio-btn active" data-value="custom">★ 我的克隆音色 (2.0)</button>
+            </div>
+            <label>语速</label>
+            <div class="radio-group" data-name="speed">
+              <button class="radio-btn" data-value="0.8">慢</button>
+              <button class="radio-btn active" data-value="1.0">标准</button>
+              <button class="radio-btn" data-value="1.2">快</button>
+            </div>
+            <label>情感</label>
+            <div class="radio-group" data-name="emotion">
+              <button class="radio-btn active" data-value="自然">自然</button>
+              <button class="radio-btn" data-value="亲切">亲切</button>
+              <button class="radio-btn" data-value="兴奋">兴奋</button>
+              <button class="radio-btn" data-value="感动">感动</button>
+            </div>
+            <label class="switch-label" style="margin-top:10px">
+              <input type="checkbox" id="use-v3-engine" />
+              <span>🧪 用 V3 引擎合成<span class="hint" style="font-size:11px;margin-left:4px">— 比默认 V2 更新,抑扬顿挫更明显,可能失败(自动回退 V2)</span></span>
+            </label>
+            <label class="switch-label" style="margin-top:6px">
+              <input type="checkbox" id="use-dynamic-delivery" checked />
+              <span>🎭 动态语速 + 情感<span class="hint" style="font-size:11px;margin-left:4px">— 钩子偏快兴奋 / 干货稍慢清晰 / 收尾慢温暖,每块各自合成 + 无缝拼接</span></span>
+            </label>
+            <h4>音频播放 / 下载</h4>
+            <audio id="tts-audio" controls class="audio-player"></audio>
+            <div class="audio-actions">
+              <button class="btn-secondary" id="btn-download-tts" disabled>⬇ 下载 MP3</button>
+              <label class="switch-label" style="margin:0;display:inline-flex;gap:6px;font-size:13px">
+                <input type="checkbox" id="tts-loop" />
+                <span>🔁 循环播放(写字时跟着练)</span>
+              </label>
+            </div>
+          </div>
+          <div class="card">
+            <h3>字幕时间轴 <span class="hint" style="font-weight:normal;font-size:12px">— 点任意一条直接改字,改完点下面按钮重合成</span></h3>
+            <div class="srt-list" id="srt-list">
+              <div class="empty">生成配音后会显示字幕时间轴</div>
+            </div>
+            <button class="btn-secondary" id="btn-regen-from-srt" style="margin-top:10px;width:100%;display:none">
+              ✍️ 用修改后的字幕重新合成
+            </button>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button class="btn-primary" id="btn-tts-preview">🎧 生成配音 & 试听</button>
+          <button class="btn-secondary" id="btn-tts-regen">🔄 换设置后重新生成</button>
+          <button class="btn-secondary" id="btn-go-record">✓ 用这条配音,下一步 →</button>
+        </div>
+      </section>
+
+      <!-- 5. 上传/录制实拍视频 -->
+      <section class="page" id="page-record">
+        <h1>上传 / 录制实拍视频</h1>
+
+        <!-- AI 配音播放器:置顶,上传/摄像头两种模式都能用 + 下载 -->
+        <div class="rec-audio-block top" id="rec-audio-block" style="display:none">
+          <label style="margin-bottom:4px">🎧 AI 配音 <span class="hint" style="font-weight:normal;font-size:12px">— 写字时听这个练节奏,录视频时它会自动播</span></label>
+          <audio id="rec-audio" controls class="audio-player" style="width:100%"></audio>
+          <div class="rec-audio-actions">
+            <button class="btn-secondary" id="btn-rec-download-tts">⬇ 下载 MP3</button>
+            <label class="switch-label">
+              <input type="checkbox" id="play-tts-while-rec" checked />
+              <span>● 点开始录制时,自动从头播放</span>
+            </label>
+            <label class="switch-label">
+              <input type="checkbox" id="rec-audio-loop" />
+              <span>🔁 循环</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" data-rec-tab="upload">📁 上传文件</button>
+          <button class="tab" data-rec-tab="camera">🎥 USB 摄像头直录</button>
+        </div>
+
+        <div class="rec-panel active" data-rec-panel="upload">
+          <div class="upload-area big" id="video-upload-area">
+            <input type="file" id="video-file-input" accept="video/*" hidden />
+            <div class="upload-hint">拖拽上传 / 点击上传<br/><small>支持 MP4 / MOV / WEBM,建议 1080P 及以上</small></div>
+          </div>
+        </div>
+
+        <div class="rec-panel" data-rec-panel="camera">
+          <div class="row">
+            <div class="col">
+              <label>摄像头</label>
+              <select id="camera-select"></select>
+              <label>分辨率</label>
+              <select id="camera-resolution">
+                <option value="1920x1080">1080P (1920x1080)</option>
+                <option value="1280x720">720P (1280x720)</option>
+                <option value="3840x2160">4K (3840x2160)</option>
+              </select>
+              <div class="action-bar">
+                <button class="btn-secondary" id="btn-camera-start">开启摄像头</button>
+                <button class="btn-primary" id="btn-record-start" disabled>● 开始录制</button>
+                <button class="btn-secondary" id="btn-record-stop" disabled>■ 停止</button>
+              </div>
+              <div class="rec-status" id="rec-status">摄像头未启动</div>
+            </div>
+            <div class="col">
+              <video id="camera-preview" autoplay muted playsinline class="camera-video"></video>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="video-preview-card" style="display:none">
+          <h3>视频预览</h3>
+          <video id="recorded-preview" controls class="recorded-video"></video>
+          <div class="composite-settings">
+            <!-- 画面/字幕设置:网格三列(模板|比例|字幕) -->
+            <div class="settings-grid">
+              <div>
+                <label>画面模板</label>
+                <div class="radio-group" data-name="template">
+                  <button class="radio-btn active" data-value="pure">纯教学版</button>
+                  <button class="radio-btn" data-value="guofeng">国风美学版</button>
+                  <button class="radio-btn" data-value="hot">爆款短视频版</button>
+                </div>
+              </div>
+              <div>
+                <label>比例</label>
+                <select id="comp-ratio">
+                  <option value="9:16">9:16(竖屏)</option>
+                  <option value="1:1">1:1(方形)</option>
+                  <option value="16:9">16:9(横屏)</option>
+                </select>
+              </div>
+              <div>
+                <label>字幕</label>
+                <select id="comp-subtitle">
+                  <option value="auto">自动生成</option>
+                  <option value="none">不显示</option>
+                </select>
+              </div>
+              <div>
+                <label>字体(字幕 + 板书共用)</label>
+                <select id="comp-font">
+                  <option value="brush1">毛笔体 1(粗犷)</option>
+                  <option value="brush2">毛笔体 2(秀丽)</option>
+                  <option value="default">系统楷书</option>
+                </select>
+              </div>
+              <div>
+                <label>板书风格</label>
+                <select id="comp-bb-style">
+                  <option value="scroll">🪧 宣纸卷轴(推荐)</option>
+                  <option value="minimal">💧 极简水墨</option>
+                  <option value="seal">🔴 朱印方框</option>
+                  <option value="bamboo">🎋 木简竹简</option>
+                </select>
+              </div>
+              <div>
+                <label>板书出现时机</label>
+                <select id="comp-bb-timing">
+                  <option value="summary" selected>🎯 结尾总结时蹦出(推荐,最干净)</option>
+                  <option value="body">干货段开始</option>
+                  <option value="bodyOnly">只在干货段显示</option>
+                  <option value="all">整段一直显示</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 叠加层开关:横向排,大字清晰 -->
+            <div class="overlay-toggles">
+              <label class="switch-label">
+                <input type="checkbox" id="enable-blackboard" checked />
+                <span>字诀板(板书)</span>
+              </label>
+              <label class="switch-label">
+                <input type="checkbox" id="enable-intro-outro" checked />
+                <span>片头片尾</span>
+              </label>
+              <label class="switch-label">
+                <input type="checkbox" id="enable-mizige" />
+                <span>叠加米字格</span>
+              </label>
+            </div>
+
+            <!-- 位置编辑器:米字格 + 板书 都能在同一个 9:16 画布上拖 -->
+            <div id="layout-editor" class="mizige-pos-editor" style="display:none">
+              <div class="mizige-pos-title">
+                <span>📐 拖动叠加层到合适位置(米字格 / 板书)</span>
+                <span class="mizige-pos-readout">
+                  米字格 <span id="mizige-pos-readout">x:4% y:4% 宽:30%</span>
+                  &nbsp;·&nbsp; 板书 <span id="bb-pos-readout">x:62% y:4% 宽:32%</span>
+                </span>
+              </div>
+              <div id="video-overlay-editor" class="video-overlay-editor">
+                <div class="overlay-frame" id="overlay-frame">
+                  <video id="overlay-bg-video" muted playsinline preload="metadata"></video>
+                  <!-- 米字格叠加 -->
+                  <div id="overlay-mizige" class="overlay-mizige" style="display:none">
+                    <img id="overlay-mizige-img" alt="" draggable="false" />
+                    <div class="resize-handle" data-handle="se"></div>
+                  </div>
+                  <!-- 板书叠加 -->
+                  <div id="overlay-blackboard" class="overlay-blackboard" style="display:none">
+                    <img id="overlay-bb-img" alt="" draggable="false" />
+                    <div class="resize-handle" data-handle="se"></div>
+                  </div>
+                </div>
+                <div class="hint" style="font-size:12px;margin-top:6px;text-align:center">9:16 画布 — 按住叠加层拖动,右下角红点拉缩放</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-bar">
+            <button class="btn-primary big" id="btn-compose">开始合成视频</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. 成片预览 -->
+      <section class="page" id="page-final">
+        <h1>成片预览</h1>
+        <div class="grid-2">
+          <div class="card">
+            <h3>视频预览</h3>
+            <div class="progress-area" id="compose-progress">
+              <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+              <div class="progress-text" id="progress-text">准备就绪</div>
+            </div>
+            <video id="final-preview" controls class="recorded-video" style="display:none"></video>
+          </div>
+          <div class="card">
+            <h3>导出设置</h3>
+            <label>导出平台</label>
+            <div class="radio-group" data-name="platform">
+              <button class="radio-btn active" data-value="douyin">抖音</button>
+              <button class="radio-btn" data-value="shipinhao">视频号</button>
+              <button class="radio-btn" data-value="xiaohongshu">小红书</button>
+              <button class="radio-btn" data-value="bilibili">B 站</button>
+            </div>
+            <label>分辨率</label>
+            <select id="export-resolution">
+              <option value="1080x1920">1080×1920</option>
+              <option value="720x1280">720×1280</option>
+            </select>
+            <label>输出版本</label>
+            <div class="radio-group" data-name="brand">
+              <button class="radio-btn active" data-value="clean">纯净版</button>
+              <button class="radio-btn" data-value="branded">品牌版(带水印)</button>
+            </div>
+            <label>文件名</label>
+            <input type="text" id="export-filename" placeholder="永-楷书-60秒" />
+            <div class="action-bar">
+              <button class="btn-primary big" id="btn-download">⬇️ 下载视频</button>
+              <button class="btn-secondary" id="btn-save-project">保存项目</button>
+              <button class="btn-secondary" id="btn-make-next">继续制作下一个</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 设置页 -->
+      <section class="page" id="page-settings">
+        <h1>设置</h1>
+
+        <div class="card">
+          <h3>🔑 API 密钥配置</h3>
+          <p class="hint">所有密钥仅存在你本地浏览器(localStorage),不会上传。</p>
+
+          <label>DeepSeek API Key</label>
+          <input type="password" id="key-deepseek" placeholder="sk-..." />
+          <label>DeepSeek 模型</label>
+          <select id="key-deepseek-model">
+            <option value="deepseek-v4-pro" selected>deepseek-v4-pro(质量最高·推荐)</option>
+            <option value="deepseek-v4-flash">deepseek-v4-flash(快·便宜)</option>
+            <option value="deepseek-chat">deepseek-chat(2026/07 弃用,兼容)</option>
+            <option value="deepseek-reasoner">deepseek-reasoner(2026/07 弃用,兼容)</option>
+          </select>
+
+          <hr />
+          <h4 style="margin-top:0;color:var(--red);">🔥 火山引擎语音(TTS V3 + 音色复刻 V3)</h4>
+          <p class="hint">两种鉴权,任选其一:<b>新版控制台只填 ① X-Api-Key 一个就够</b>(TTS 和音色复刻都用 V3 接口)。旧版控制台或想用 V1 fallback 的填 ②。两个都填会优先用 V3。</p>
+
+          <label>① 新版控制台 API Key(推荐)</label>
+          <input type="password" id="key-volc-apikey" placeholder="https://console.volcengine.com/speech/new → API Key 管理" />
+
+          <label>② 旧版控制台 — AppID(V1 TTS fallback 用)</label>
+          <input type="text" id="key-volc-appid" placeholder="老控制台 → 语音技术 → AppID" />
+          <label>② 旧版控制台 — Access Token</label>
+          <input type="password" id="key-volc-token" placeholder="对应的 Access Token" />
+          <label>② 旧版控制台 — Cluster</label>
+          <input type="text" id="key-volc-cluster" value="volcano_tts" placeholder="默认 volcano_tts(仅 V1 fallback 用)" />
+
+          <label>我的克隆音色 voice_id(克隆训练完会自动填,也可手填)</label>
+          <input type="text" id="key-volc-voice-id" placeholder="如 jianggeshufa_xxxx" />
+
+          <hr />
+
+          <label>豆包视觉(火山 ark) API Key</label>
+          <input type="password" id="key-doubao" placeholder="ark API Key" />
+          <label>豆包视觉模型 endpoint</label>
+          <input type="text" id="key-doubao-model" value="ep-20260427205304-9kmtr" placeholder="模型名 或 ep-xxx 接入点 ID" />
+          <p class="hint">
+            报 404 InvalidEndpointOrModel.NotFound?有两种修法:<br/>
+            <b>A.</b> 去 <a href="https://console.volcengine.com/ark/region:ark+cn-beijing/model" target="_blank">ark 控制台 → 模型广场</a> 开通「Doubao-Seed-1.6-vision」<br/>
+            <b>B.</b> 去 <a href="https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint" target="_blank">ark 控制台 → 在线推理</a> 创建接入点,拿到 <code>ep-xxxxxxxxxx-xxxxx</code> 填进上面
+          </p>
+
+          <hr />
+
+          <label>CORS 代理(火山 TTS 必须走代理,默认指向本地 5174 端口)</label>
+          <input type="text" id="key-proxy" placeholder="http://localhost:5174 或你的 CloudBase 云函数 URL" value="http://localhost:5174" />
+          <p class="hint">本地代理:在项目根目录跑 <code>node proxy.js</code> 即可,无需任何依赖。我已经在你机器上启好了。</p>
+
+          <hr />
+
+          <label>本地保存目录</label>
+          <div class="action-bar">
+            <button class="btn-secondary" id="btn-pick-dir">📁 选择保存文件夹</button>
+            <span id="dir-name">未设置</span>
+          </div>
+
+          <div class="action-bar">
+            <button class="btn-primary" id="btn-save-settings">💾 保存设置</button>
+            <button class="btn-secondary" id="btn-test-keys">🧪 测试连通性</button>
+          </div>
+          <div id="settings-feedback" class="feedback"></div>
+        </div>
+      </section>
+
+      <!-- 配音库 / 音色克隆 -->
+      <section class="page" id="page-voice">
+        <h1>配音库 / 训练专属音色</h1>
+
+        <!-- 我的音色库 -->
+        <div class="card">
+          <h3>🎵 我的音色库 <span class="hint" style="font-weight:normal">— 训练完成的克隆音色都在这里,可以试听 / 改名 / 切默认 / 删除</span></h3>
+          <div id="voice-list" class="voice-list">
+            <div class="empty">还没有训练过音色 — 用下面的录音区开始训练第一个</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>🎤 训练你的专属音色</h3>
+          <p class="hint">
+            念出下方 10 句话,系统会用火山引擎「声音复刻 ICL 2.0」生成你专属的 voice_id。
+            <strong style="color:var(--red)">合成生硬几乎都是因为训练样本平淡</strong>——下面这几条照着做,效果差很多倍:
+          </p>
+
+          <div class="recording-tips">
+            <div class="tip">
+              <span class="tip-tag">环境</span>
+              <span>关空调/风扇,门窗关好,房间小一点(回声少)。麦克离嘴 <strong>15-20cm</strong>,别贴脸说话(喷麦)。</span>
+            </div>
+            <div class="tip">
+              <span class="tip-tag">情绪</span>
+              <span>每句左上角红标签写了「情绪指引」,<strong>跟着演</strong>——不是读字,是演讲。强调句就真的加重,温暖句就带笑意。</span>
+            </div>
+            <div class="tip">
+              <span class="tip-tag">节奏</span>
+              <span>说话的节奏!不是念书的节奏。逗号自然停 0.3 秒,句号停 0.6 秒。有自信,别赶。</span>
+            </div>
+            <div class="tip">
+              <span class="tip-tag">质检</span>
+              <span>录完<strong>试听</strong>这一句,听着像「江哥跟人聊天」就过,听着像「江哥念课文」就重录。</span>
+            </div>
+            <div class="tip">
+              <span class="tip-tag">姿势</span>
+              <span>坐直、肩放松,<strong>嘴角微微上提</strong>(听众听得出来你在不在笑)。深吸一口气再开始。</span>
+            </div>
+          </div>
+
+          <div class="clone-text-list" id="clone-text-list"></div>
+
+          <div class="action-bar">
+            <button class="btn-secondary" id="btn-clone-record">● 开始录音</button>
+            <button class="btn-secondary" id="btn-clone-stop" disabled>■ 停止当前句</button>
+            <button class="btn-secondary" id="btn-clone-skip">下一句 →</button>
+            <button class="btn-primary" id="btn-clone-submit" disabled>提交训练</button>
+          </div>
+          <div class="rec-status" id="clone-status">未开始</div>
+          <audio id="clone-preview" controls style="display:none"></audio>
+        </div>
+      </section>
+
+      <!-- 历史作品 -->
+      <section class="page" id="page-history">
+        <h1>历史作品</h1>
+        <div class="card">
+          <div id="history-list">
+            <div class="empty">还没有作品</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 模板中心 -->
+      <section class="page" id="page-templates">
+        <h1>模板中心</h1>
+        <div class="card">
+          <div class="grid-2">
+            <div class="template-big">
+              <h3>纯教学版</h3>
+              <p>左侧老师写字 + 右侧小黑板板书重点,适合零基础教学</p>
+            </div>
+            <div class="template-big">
+              <h3>国风美学版</h3>
+              <p>水墨边框 + 古风字体,适合文化向内容</p>
+            </div>
+            <div class="template-big">
+              <h3>爆款短视频版</h3>
+              <p>大字幕 + 节奏快剪 + 钩子开场,适合冲流量</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 导出记录 -->
+      <section class="page" id="page-exports">
+        <h1>导出记录</h1>
+        <div class="card">
+          <div id="exports-list">
+            <div class="empty">还没有导出记录</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 全局 toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- 第三方库 -->
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs" type="module"></script>
+
+  <!-- 业务脚本 -->
+  <script type="module" src="js/config.js"></script>
+  <script type="module" src="js/storage.js"></script>
+  <script type="module" src="js/deepseek.js"></script>
+  <script type="module" src="js/volcengine-tts.js"></script>
+  <script type="module" src="js/volcengine-clone.js"></script>
+  <script type="module" src="js/doubao-vision.js"></script>
+  <script type="module" src="js/camera.js"></script>
+  <script type="module" src="js/ffmpeg-wrapper.js"></script>
+  <script type="module" src="js/pdf-handler.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
