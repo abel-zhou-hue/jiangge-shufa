@@ -504,7 +504,13 @@ export function toSRT(subtitles) {
   ).join('\n');
 }
 
-// 连通性测试 — 用最短的中文
+// 连通性测试 — 优先用你的克隆音色(seed-icl-2.0),跟生产路径一致
+// 没训练过克隆音色才退回 Mars 1.0(很多账号没开,可能 55000000)
 export async function testTTS() {
+  const cfg = loadConfig();
+  if (cfg.volcVoiceId) {
+    // 用克隆音色测,跟实际用法完全一致
+    return synthOne('你好。', { voiceType: 'custom' });
+  }
   return synthOne('你好。', {});
 }
