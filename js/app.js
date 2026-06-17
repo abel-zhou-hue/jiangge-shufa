@@ -1,5 +1,5 @@
 // 主控:页面切换、事件绑定、状态串联
-import { loadConfig, saveConfig, getConfiguredCount, listVoices, addVoice, removeVoice, setDefaultVoice, renameVoice } from './config.js';
+import { loadConfig, saveConfig, getConfiguredCount, listVoices, addVoice, removeVoice, setDefaultVoice, renameVoice, fetchServerConfig, serverConfiguredKeys } from './config.js';
 import { saveProject, listProjects, putBlob, getBlob, pickAndSaveDir, loadDirHandle, writeFileToDir, saveCopybook, listCopybooks, getCopybook, deleteCopybook, touchCopybook, renameCopybook } from './storage.js';
 import { generateScript, checkMultiCharCompliance } from './deepseek.js';
 import { generateTTS, toSRT, testTTS } from './volcengine-tts.js';
@@ -79,6 +79,10 @@ function showPage(name) {
 
 // ================= 启动 =================
 window.addEventListener('DOMContentLoaded', async () => {
+  // 关键:先把服务端 env 里设的 key 拉下来,再 init 设置表单 / 状态栏 ——
+  // 否则界面会先显示"未配置",一秒后才更新
+  await fetchServerConfig();
+
   bindNav();
   bindHomepage();
   bindNewVideoPage();
@@ -1196,6 +1200,37 @@ function initSettingsForm() {
   loadDirHandle().then(h => {
     if (h) $('#dir-name').textContent = h.name;
   }).catch(()=>{});
+  markServerConfiguredFields();
+}
+
+// 把"由服务端 env 注入"的字段标记一下,UI 上提示用户不用再填
+function markServerConfiguredFields() {
+  const map = {
+    deepseekKey:   'key-deepseek',
+    deepseekModel: 'key-deepseek-model',
+    volcApiKey:    'key-volc-apikey',
+    volcAppId:     'key-volc-appid',
+    volcToken:     'key-volc-token',
+    volcVoiceId:   'key-volc-voice-id',
+    doubaoKey:     'key-doubao',
+    doubaoModel:   'key-doubao-model',
+  };
+  const serverKeys = serverConfiguredKeys();
+  for (const [configKey, inputId] of Object.entries(map)) {
+    const input = document.getElementById(inputId);
+    if (!input) continue;
+    // 清掉旧标记
+    const oldBadge = input.parentElement?.querySelector('.server-badge');
+    if (oldBadge) oldBadge.remove();
+    if (serverKeys.includes(configKey)) {
+      const badge = document.createElement('span');
+      badge.className = 'server-badge';
+      badge.textContent = '✓ 服务端已配置';
+      badge.style.cssText = 'display:inline-block;margin-left:8px;padding:1px 8px;background:#2a7d4f;color:#fff;font-size:11px;border-radius:3px;font-weight:600;';
+      input.parentElement?.insertBefore(badge, input);
+      input.placeholder = '已由 CloudBase env 注入(留空即可)';
+    }
+  }
 }
 
 function bindSettingsPage() {

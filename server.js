@@ -100,6 +100,29 @@ async function handleProxy(req, res) {
   req.pipe(upstream);
 }
 
+// ----- 服务端配置 handler -----
+// 把 CloudBase Run 环境变量里设的 key 返回给前端,
+// 前端用作"默认值"(localStorage 里已填的字段优先,空字段才用这个)
+function handleApiConfig(req, res) {
+  setCors(res);
+  if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+  const cfg = {
+    deepseekKey:   process.env.DEEPSEEK_KEY   || '',
+    deepseekModel: process.env.DEEPSEEK_MODEL || '',
+    volcApiKey:    process.env.VOLC_API_KEY   || '',
+    volcAppId:     process.env.VOLC_APP_ID    || '',
+    volcToken:     process.env.VOLC_TOKEN     || '',
+    volcVoiceId:   process.env.VOLC_VOICE_ID  || '',
+    doubaoKey:     process.env.DOUBAO_KEY     || '',
+    doubaoModel:   process.env.DOUBAO_MODEL   || '',
+  };
+  // 服务端有哪些字段做个 source 标记,前端可以在 UI 里给"✓ 服务端已配置"提示
+  const source = {};
+  for (const [k, v] of Object.entries(cfg)) if (v) source[k] = 'server';
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ config: cfg, source }));
+}
+
 // ----- 静态 handler -----
 function handleStatic(req, res) {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
@@ -119,13 +142,14 @@ function handleStatic(req, res) {
 // ----- server -----
 const server = http.createServer((req, res) => {
   const p = req.url.split('?')[0];
+  if (p === '/api/config') return handleApiConfig(req, res);
   if (p === '/proxy' || p === '/proxy/' || p.startsWith('/proxy/')) return handleProxy(req, res);
   return handleStatic(req, res);
 });
 
 server.listen(PORT, () => {
   console.log(`[江哥书法工作台] listening on :${PORT}`);
-  console.log(`[路由] / → 静态文件 | /proxy → 火山代理`);
+  console.log(`[路由] / → 静态 | /proxy → 火山代理 | /api/config → 服务端 key 配置`);
 });
 
 // ----- 工具 -----

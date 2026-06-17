@@ -1,5 +1,26 @@
-// 全局配置管理:API Keys + 用户偏好,持久化到 localStorage
+// 全局配置管理:API Keys + 用户偏好
+// 优先级:localStorage(用户在设置页填的) > 服务端 env(/api/config) > 内置默认值
 const KEY = 'jiangge_config_v1';
+
+// 服务端配置缓存(启动时从 /api/config 拉一次)
+let _serverConfig = {};
+let _serverSource = {};   // 哪些 key 来自服务端,UI 用来显示"✓ 服务端已配置"
+
+export async function fetchServerConfig() {
+  try {
+    const r = await fetch('/api/config', { cache: 'no-store' });
+    if (!r.ok) return;
+    const j = await r.json();
+    _serverConfig = j.config || {};
+    _serverSource = j.source || {};
+    console.log('[config] 服务端已配置字段:', Object.keys(_serverSource));
+  } catch (e) {
+    console.log('[config] /api/config 不可用 (本地静态托管 / GH Pages 等),仅用 localStorage');
+  }
+}
+
+// 哪些字段是服务端注入的 — 设置页用,显示"✓ 服务端已配置"小标签
+export function serverConfiguredKeys() { return Object.keys(_serverSource); }
 
 const DEFAULT = {
   deepseekKey: '',
@@ -42,14 +63,20 @@ const MIGRATIONS = [
 export function loadConfig() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return { ...DEFAULT };
-    let cfg = { ...DEFAULT, ...JSON.parse(raw) };
-    // 应用迁移
+    const stored = raw ? JSON.parse(raw) : {};
+    // 合并顺序:DEFAULT 兜底 → 服务端 env 填空 → localStorage 优先
+    // 注意:服务端配置只对"空字符串"字段生效,用户主动填了的不会被覆盖
+    const merged = { ...DEFAULT, ..._serverConfig, ...stored };
+    // 但是 stored 里如果某 key 是空字符串,应该让服务端值生效(否则服务端配的就没用)
+    for (const k of Object.keys(_serverConfig)) {
+      if (!stored[k] && _serverConfig[k]) merged[k] = _serverConfig[k];
+    }
+    let cfg = merged;
     for (const m of MIGRATIONS) cfg = m(cfg);
     return cfg;
   } catch (e) {
     console.warn('config 读取失败,使用默认', e);
-    return { ...DEFAULT };
+    return { ...DEFAULT, ..._serverConfig };
   }
 }
 
