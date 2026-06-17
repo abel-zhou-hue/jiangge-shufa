@@ -1242,12 +1242,15 @@ function bindSettingsPage() {
       await testTTS();
       results.push('✓ 火山 TTS 通');
     } catch (e) { results.push('✗ 火山 TTS: ' + e.message); }
-    // 豆包 — 用合法的 1×1 PNG,这样验证的是接口连通性而非图像内容
+    // 豆包 — 现在豆包要求图片 ≥14×14,直接 canvas 画一个 32×32 的"永"字送过去
     try {
-      // 1×1 透明 PNG (base64)
-      const pngB64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAfbLI3wAAAABJRU5ErkJggg==';
-      const bytes = Uint8Array.from(atob(pngB64), c => c.charCodeAt(0));
-      const blob = new Blob([bytes], { type: 'image/png' });
+      const c = document.createElement('canvas');
+      c.width = 32; c.height = 32;
+      const cx = c.getContext('2d');
+      cx.fillStyle = '#fff'; cx.fillRect(0, 0, 32, 32);
+      cx.fillStyle = '#000'; cx.font = 'bold 26px serif'; cx.textBaseline = 'top';
+      cx.fillText('永', 3, 2);
+      const blob = await new Promise(r => c.toBlob(b => r(b), 'image/png'));
       await recognizeCharFromImage(blob);
       results.push('✓ 豆包视觉 通');
     } catch (e) { results.push('豆包视觉: ' + e.message.slice(0, 240)); }
