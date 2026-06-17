@@ -1,0 +1,22 @@
+.git
+.gitignore
+.claude
+.DS_Store
+**/.DS_Store
+node_modules
+*.log
+proxy-capture.log
+proxy-run.log
+proxy.js
+cloudfunction-proxy
+cf-worker-proxy.js
+README.md
+exports
+*.mp4
+*.webm
+.idea
+.vscode
+# UMD 备份(代码只用 ESM,不需要)
+vendor/ffmpeg-core/ffmpeg-core.js
+vendor/ffmpeg-core/ffmpeg-core.wasm
+

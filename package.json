@@ -1,0 +1,13 @@
+{
+  "name": "jiangge-shufa",
+  "version": "1.0.0",
+  "description": "江哥书法工作台 — 选字/讲稿/配音/拍摄/合成全流程,纯静态 + Node 代理",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "private": true
+}
